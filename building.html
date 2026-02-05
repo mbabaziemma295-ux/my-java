@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Building Construction | SD Edition</title>
+    <style>
+        :root { 
+            --bg: #0f172a; --card: #1e293b; --text: #f8fafc; 
+            --cyan: #22d3ee; --green: #4ade80; --yellow: #fbbf24; --red: #f87171; 
+            --border: #334155; 
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 50px; }
+        nav { background: var(--card); padding: 0 15px; display: flex; justify-content: center; gap: 10px; border-bottom: 2px solid var(--cyan); position: sticky; top: 0; z-index: 100; }
+        nav a { color: var(--text); text-decoration: none; font-weight: bold; padding: 15px 25px; cursor: pointer; font-size: 14px; }
+        nav a.active { background: var(--cyan); color: #000; }
+        .page-section { display: none; padding: 30px 20px; max-width: 1400px; margin: auto; }
+        .page-section.active { display: block; }
+        .level-header { background: var(--cyan); color: #000; padding: 10px 20px; border-radius: 8px 8px 0 0; display: inline-block; font-weight: 800; text-transform: uppercase; }
+        .table-container { background: var(--card); padding: 10px; border-radius: 0 10px 10px 10px; border: 1px solid var(--border); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 1200px; }
+        th, td { padding: 12px 8px; border-bottom: 1px solid var(--border); text-align: center; font-size: 13px; }
+        th { background: #334155; color: var(--cyan); }
+        .term-sep { border-left: 2px solid var(--border); }
+        .st-PAID { color: var(--green); font-weight: bold; }
+        .st-OVER-PAID { background: var(--cyan); color: #000; padding: 2px 8px; border-radius: 4px; font-weight: 900; }
+        .st-NOT-ENOUGH-MONEY { color: var(--yellow); font-weight: bold; }
+        .st-NOT-PAID { color: var(--red); font-weight: bold; }
+        .form-box { max-width: 500px; margin: 40px auto; background: var(--card); padding: 30px; border-radius: 15px; border: 1px solid var(--border); }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; background: #0f172a; border: 1px solid var(--border); color: white; border-radius: 8px; }
+        .btn { width: 100%; padding: 14px; background: var(--cyan); color: #000; border: none; font-weight: bold; border-radius: 8px; cursor: pointer; }
+
+        /* CALCULATOR */
+        .calc-container { max-width: 320px; margin: 20px auto; background: #000; padding: 20px; border-radius: 20px; border: 2px solid var(--border); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        #calc-display { width: 100%; height: 60px; background: transparent; color: var(--cyan); border: none; text-align: right; font-size: 32px; margin-bottom: 20px; padding: 0 10px; box-sizing: border-box; outline: none; }
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .calc-btn { padding: 20px; border-radius: 12px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; background: #334155; color: white; }
+        .calc-btn.op { background: var(--yellow); color: #000; }
+        .calc-btn.eq { background: var(--green); color: #000; }
+        .calc-btn.ac { background: var(--red); color: white; grid-column: span 2; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a onclick="show('home')" id="n-home" class="active">BUILDING LIST</a>
+    <a onclick="show('new')" id="n-new">ADD STUDENT</a>
+    <a onclick="show('update')" id="n-update">PAYMENTS</a>
+    <a onclick="show('calc')" id="n-calc">CALCULATOR</a>
+    <a onclick="show('dash')" id="n-dash">DASHBOARD</a>
+</nav>
+
+<section id="home" class="page-section active">
+    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <h2 style="margin:0;">BUILDING CONSTRUCTION DEPT</h2>
+        <input type="text" id="search" onkeyup="render()" placeholder="🔍 Search name...">
+    </div>
+    <div id="list"></div>
+</section>
+
+<section id="new" class="page-section">
+    <div class="form-box">
+        <h2>Register Building Student</h2>
+        <form id="fs-form" action="https://formspree.io/f/xreazkkj" method="POST">
+            <input type="email" name="email" id="regEmail" placeholder="Student Email" required>
+            <input type="text" id="regName" name="Student Name" placeholder="Full Name" required>
+            <select id="regLvl" name="Level">
+                <option value="Level 3">Level 3 (Term 1: 200,000)</option>
+                <option value="Level 4">Level 4 (Term 1: 160,000)</option>
+                <option value="Level 5">Level 5 (Term 1: 160,000)</option>
+            </select>
+            <select id="regTerm" name="Starting Term">
+                <option value="1">Term 1</option>
+                <option value="2">Term 2</option>
+                <option value="3">Term 3</option>
+            </select>
+            <input type="number" id="regMoney" name="Initial Payment" placeholder="Initial Payment (RWF)">
+            <button type="submit" class="btn" id="fs-submit">SAVE & SEND EMAIL</button>
+        </form>
+    </div>
+</section>
+
+<section id="update" class="page-section">
+    <div class="form-box">
+        <h2>Submit Payment</h2>
+        <select id="selStudent"></select>
+        <input type="number" id="amt" placeholder="Enter amount" style="text-align: center; font-size: 24px; color: var(--green);">
+        <button class="btn" onclick="pay()">CONFIRM TRANSACTION</button>
+    </div>
+</section>
+
+<section id="calc" class="page-section">
+    <div class="calc-container">
+        <input type="text" id="calc-display" readonly value="0">
+        <div class="calc-grid">
+            <button class="calc-btn ac" onclick="calcClear()">AC</button>
+            <button class="calc-btn op" onclick="calcPush('/')">/</button>
+            <button class="calc-btn op" onclick="calcPush('*')">×</button>
+            <button class="calc-btn" onclick="calcPush('7')">7</button>
+            <button class="calc-btn" onclick="calcPush('8')">8</button>
+            <button class="calc-btn" onclick="calcPush('9')">9</button>
+            <button class="calc-btn op" onclick="calcPush('-')">-</button>
+            <button class="calc-btn" onclick="calcPush('4')">4</button>
+            <button class="calc-btn" onclick="calcPush('5')">5</button>
+            <button class="calc-btn" onclick="calcPush('6')">6</button>
+            <button class="calc-btn op" onclick="calcPush('+')">+</button>
+            <button class="calc-btn" onclick="calcPush('1')">1</button>
+            <button class="calc-btn" onclick="calcPush('2')">2</button>
+            <button class="calc-btn" onclick="calcPush('3')">3</button>
+            <button class="calc-btn eq" onclick="calcSolve()">=</button>
+            <button class="calc-btn" style="grid-column: span 2;" onclick="calcPush('0')">0</button>
+            <button class="calc-btn" onclick="calcPush('.')">.</button>
+            <button class="calc-btn op" onclick="calcBackspace()">⌫</button>
+        </div>
+    </div>
+</section>
+
+<section id="dash" class="page-section">
+    <div style="display: flex; gap: 20px; justify-content: center;">
+        <div class="form-box" style="flex:1; text-align:center;"><h3>BUILDING COLLECTED</h3><h1 id="d-col" style="color:var(--green)">0</h1></div>
+        <div class="form-box" style="flex:1; text-align:center;"><h3>BUILDING DEBT</h3><h1 id="d-debt" style="color:var(--red)">0</h1></div>
+    </div>
+</section>
+
+<script>
+    const getFee = (lvl) => lvl === "Level 3" ? 200000 : 160000;
+    
+    // Database removed: Resets on refresh
+    let students = [
+        {name: "Habimana Bosco", level: "Level 3", paidTotal: 0, t1:{}, t2:{}, t3:{}},
+        {name: "Mukamana Marie", level: "Level 3", paidTotal: 0, t1:{}, t2:{}, t3:{}},
+        {name: "Nshimiye Eric", level: "Level 4", paidTotal: 0, t1:{}, t2:{}, t3:{}},
+        {name: "Uwase Aline", level: "Level 5", paidTotal: 0, t1:{}, t2:{}, t3:{}},
+         {name: "Habimana Bosco", level: "Level 3", paidTotal: 0, t1:{}, t2:{}, t3:{}},
+        {name: "Mukamana Marie", level: "Level 3", paidTotal: 0, t1:{}, t2:{}, t3:{}},
+        {name: "Nshimiye Eric", level: "Level 4", paidTotal: 0, t1:{}, t2:{}, t3:{}},
+        {name: "Uwase Aline", level: "Level 5", paidTotal: 0, t1:{}, t2:{}, t3:{}},
+         {name: "Habimana Bosco", level: "Level 3", paidTotal: 0, t1:{}, t2:{}, t3:{}},
+        {name: "Mukamana Marie", level: "Level 3", paidTotal: 0, t1:{}, t2:{}, t3:{}},
+        {name: "Nshimiye Eric", level: "Level 4", paidTotal: 0, t1:{}, t2:{}, t3:{}},
+        {name: "Uwase Aline", level: "Level 5", paidTotal: 0, t1:{}, t2:{}, t3:{}}
+    ];
+    
+    
+
+    students.forEach(s => calc(s, 0));
+
+    /* --- CALCULATOR --- */
+    let calcVal = "";
+    const display = document.getElementById('calc-display');
+    function calcPush(val) { if (calcVal === "0" && val !== ".") calcVal = ""; calcVal += val; display.value = calcVal; }
+    function calcClear() { calcVal = ""; display.value = "0"; }
+    function calcBackspace() { calcVal = calcVal.slice(0, -1); display.value = calcVal || "0"; }
+    function calcSolve() { try { display.value = eval(calcVal.replace('×', '*').replace('÷', '/')); calcVal = display.value; } catch { display.value = "Error"; calcVal = ""; } }
+
+    /* --- LOGIC --- */
+    function calc(s, amt) {
+        s.paidTotal += amt;
+        let rem = s.paidTotal;
+        const currentFee = getFee(s.level);
+        [s.t1, s.t2, s.t3].forEach((t, i) => {
+            if (rem > currentFee) {
+                if (i === 2) { t.p = rem; t.s = "OVER PAID"; t.b = "+" + (rem - currentFee).toLocaleString(); } 
+                else { t.p = currentFee; t.s = "PAID"; t.b = 0; rem -= currentFee; }
+            } else if (rem === currentFee) { t.p = currentFee; t.s = "PAID"; t.b = 0; rem = 0; }
+            else if (rem > 0 && rem < currentFee) { t.p = rem; t.s = "NOT ENOUGH MONEY"; t.b = (currentFee - rem).toLocaleString(); rem = 0; }
+            else { t.p = 0; t.s = "NOT PAID"; t.b = currentFee.toLocaleString(); }
+        });
+    }
+
+    function render() {
+        const q = document.getElementById('search').value.toLowerCase();
+        const container = document.getElementById('list');
+        container.innerHTML = "";
+        ["Level 3", "Level 4", "Level 5"].forEach(lvl => {
+            let filtered = students.filter(s => s.level === lvl && s.name.toLowerCase().includes(q));
+            if(filtered.length > 0) {
+                const currentFee = getFee(lvl);
+                let html = `<div class="level-group"><div class="level-header">${lvl}</div><div class="table-container"><table>
+                    <thead><tr><th rowspan="2">Student Name</th><th colspan="4" class="term-sep">Term 1</th><th colspan="4" class="term-sep">Term 2</th><th colspan="4" class="term-sep">Term 3</th></tr>
+                    <tr><th class="term-sep">Fees</th><th>Paid</th><th>Bal</th><th>Status</th><th class="term-sep">Fees</th><th>Paid</th><th>Bal</th><th>Status</th><th class="term-sep">Fees</th><th>Paid</th><th>Bal</th><th>Status</th></tr></thead><tbody>`;
+                filtered.forEach(s => {
+                    html += `<tr><td style="text-align:left; font-weight:bold;">${s.name}</td>
+                        <td class="term-sep">${currentFee.toLocaleString()}</td><td>${s.t1.p.toLocaleString()}</td><td>${s.t1.b}</td><td><span class="st-${s.t1.s.replace(/ /g, '-')}">${s.t1.s}</span></td>
+                        <td class="term-sep">${currentFee.toLocaleString()}</td><td>${s.t2.p.toLocaleString()}</td><td>${s.t2.b}</td><td><span class="st-${s.t2.s.replace(/ /g, '-')}">${s.t2.s}</span></td>
+                        <td class="term-sep">${currentFee.toLocaleString()}</td><td>${s.t3.p.toLocaleString()}</td><td>${s.t3.b}</td><td><span class="st-${s.t3.s.replace(/ /g, '-')}">${s.t3.s}</span></td></tr>`;
+                });
+                container.innerHTML += html + "</tbody></table></div></div>";
+            }
+        });
+        fillSelect();
+    }
+
+    function show(id) {
+        document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.getElementById('n-' + id).classList.add('active');
+        if(id === 'dash') {
+            let col = 0, debt = 0;
+            students.forEach(s => { 
+                col += s.paidTotal; 
+                [s.t1,s.t2,s.t3].forEach(t => { 
+                    let b = typeof t.b === 'string' && t.b.includes('+') ? 0 : (typeof t.b === 'string' ? parseInt(t.b.replace(/,/g, '')) : t.b);
+                    if(b > 0 && !isNaN(b)) debt += b; 
+                });
+            });
+            document.getElementById('d-col').innerText = col.toLocaleString() + " RWF";
+            document.getElementById('d-debt').innerText = debt.toLocaleString() + " RWF";
+        }
+    }
+
+    function pay() {
+        let name = document.getElementById('selStudent').value;
+        let val = parseInt(document.getElementById('amt').value);
+        if(!name || isNaN(val)) return;
+        let s = students.find(x => x.name === name);
+        calc(s, val); render(); show('home');
+        document.getElementById('amt').value = "";
+    }
+
+    function fillSelect() {
+        const sel = document.getElementById('selStudent');
+        sel.innerHTML = '<option value="">-- Choose Student --</option>';
+        students.sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
+            sel.innerHTML += `<option value="${s.name}">${s.name} (${s.level})</option>`;
+        });
+    }
+
+    document.getElementById("fs-form").addEventListener("submit", async function(e) {
+        e.preventDefault();
+        var status = document.getElementById("fs-submit");
+        var data = new FormData(e.target);
+
+        let n = document.getElementById('regName').value;
+        let l = document.getElementById('regLvl').value;
+        let t = parseInt(document.getElementById('regTerm').value);
+        let m = parseInt(document.getElementById('regMoney').value) || 0;
+        let currentFee = getFee(l);
+        let s = { name: n, level: l, paidTotal: 0, t1:{}, t2:{}, t3:{} };
+        calc(s, ((t - 1) * currentFee) + m);
+        students.push(s); 
+        render();
+
+        status.innerHTML = "Sending..."; status.disabled = true;
+        fetch(e.target.action, { method: 'POST', body: data, headers: { 'Accept': 'application/json' } })
+        .then(() => { alert("Success! Email sent and student registered."); e.target.reset(); show('home'); })
+        .catch(() => alert("Connection error! Added locally only."))
+        .finally(() => { status.innerHTML = "SAVE & SEND EMAIL"; status.disabled = false; });
+    });
+
+    render();
+</script>
+</body>
+</html>

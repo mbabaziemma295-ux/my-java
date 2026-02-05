@@ -1,0 +1,245 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>School Fees System - 50 Students Edition</title>
+    <style>
+        :root { 
+            --bg: #0f172a; --card: #1e293b; --text: #f8fafc; 
+            --cyan: #22d3ee; --green: #4ade80; --yellow: #fbbf24; --red: #f87171; 
+            --border: #334155; 
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 50px; }
+        
+        nav { 
+            background: var(--card); padding: 15px; display: flex; 
+            justify-content: center; gap: 20px; border-bottom: 2px solid var(--cyan);
+            position: sticky; top: 0; z-index: 100;
+        }
+        nav a { color: var(--text); text-decoration: none; font-weight: bold; padding: 8px 20px; border-radius: 5px; cursor: pointer; }
+        nav a.active { background: var(--cyan); color: #000; }
+
+        .page-section { display: none; padding: 20px; max-width: 1500px; margin: auto; }
+        .active { display: block; }
+
+        .level-group { margin-bottom: 30px; }
+        .level-header { background: var(--cyan); color: #000; padding: 8px 15px; border-radius: 5px 5px 0 0; display: inline-block; font-weight: bold; font-size: 14px; }
+
+        .table-container { background: var(--card); padding: 15px; border-radius: 0 10px 10px 10px; border: 1px solid var(--border); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 1300px; }
+        th, td { padding: 10px; border-bottom: 1px solid var(--border); text-align: center; font-size: 12px; }
+        th { background: #334155; color: var(--cyan); }
+        .term-sep { border-left: 3px solid var(--border); }
+
+        /* Status Colors */
+        .st-PAID { color: var(--green); font-weight: bold; }
+        .st-OVER-PAID { background: var(--cyan); color: #000; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .st-NOT-ENOUGH-MONEY { color: var(--yellow); font-weight: bold; }
+        .st-NOT-PAID { color: var(--red); font-weight: bold; }
+
+        .form-box { max-width: 450px; margin: 20px auto; background: var(--card); padding: 20px; border-radius: 10px; border: 1px solid var(--border); }
+        input, select { width: 100%; padding: 10px; margin: 8px 0; background: #0f172a; border: 1px solid var(--border); color: white; border-radius: 5px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 12px; background: var(--cyan); color: #000; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a onclick="show('home')" id="n-home" class="active">HOME</a>
+    <a onclick="show('new')" id="n-new">NEW</a>
+    <a onclick="show('update')" id="n-update">UPDATE</a>
+    <a onclick="show('dash')" id="n-dash">DASH</a>
+</nav>
+
+<section id="All students" class="page-section active">
+    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h2>FOOD AND BEVARAGE OPERATION</h2>
+        <input type="text" id="search" onkeyup="render()" placeholder="Search student name..." style="width:250px;">
+    </div>
+    <div id="list"></div>
+</section>
+
+<section id="new" class="page-section">
+    <div class="form-box">
+        <h2>Add New Student</h2>
+        <input type="text" id="regName" placeholder="Full Name">
+        <select id="regLvl"><option>Level 3</option><option>Level 4</option><option>Level 5</option></select>
+        <select id="regTerm">
+            <option value="1">Term 1 (Needs 150k)</option>
+            <option value="2">Term 2 (Needs 150k total)</option>
+            <option value="3">Term 3 (Needs 150k total)</option>
+        </select>
+        <input type="number" id="regMoney" placeholder="Initial Payment Amount">
+        <button class="btn" onclick="addStudent()">SAVE STUDENT</button>
+    </div>
+</section>
+
+<section id="update" class="page-section">
+    <div class="form-box">
+        <h2>Add Payment</h2>
+        <select id="selStudent"></select>
+        <input type="number" id="amt" placeholder="Enter Amount" style="text-align: center; font-size: 20px; color: var(--green);">
+        <button class="btn" onclick="pay()">SUBMIT PAYMENT</button>
+    </div>
+</section>
+
+<section id="dash" class="page-section">
+    <div style="display: flex; gap: 20px; justify-content: center; margin-top: 50px;">
+        <div class="form-box" style="text-align: center; flex: 1;"><h3>COLLECTED</h3><h1 id="d-col" style="color:var(--green)">0</h1></div>
+        <div class="form-box" style="text-align: center; flex: 1;"><h3>TOTAL DEBT</h3><h1 id="d-debt" style="color:var(--red)">0</h1></div>
+    </div>
+</section>
+
+<script>
+    const FEE = 150000;
+    let students = JSON.parse(localStorage.getItem('fees_system_v3')) || [];
+
+    // AUTO-LOAD 50 STUDENTS
+    if(students.length === 0) {
+        const first = ["Jean", "Marie", "Eric", "Alice", "Paul", "Divine", "Bosco", "Sifa", "Kevin", "Bella"];
+        const last = ["Nkurunziza", "Mugisha", "Gasana", "Uwimana", "Butera", "Kamanzi", "Mutoni", "Iradukunda", "Umuhire", "Bizimana"];
+        
+        for(let i=1; i<=50; i++) {
+            let name = last[i % 10] + " " + first[Math.floor(Math.random() * 10)] + " " + i;
+            let lvl = i <= 15 ? "Level 3" : i <= 35 ? "Level 4" : "Level 5";
+            let s = { name: name, level: lvl, paidTotal: 0, t1:{}, t2:{}, t3:{} };
+            
+            // Randomly assign money to show different statuses
+            let money = 0;
+            if (i % 5 === 0) money = 200000; // Overpaid Term 1
+            else if (i % 3 === 0) money = 150000; // Paid Term 1
+            else if (i % 2 === 0) money = 75000; // Not enough
+            
+            calc(s, money);
+            students.push(s);
+        }
+        save();
+    }
+
+    function calc(s, amt) {
+        s.paidTotal += amt;
+        let rem = s.paidTotal;
+        
+        [s.t1, s.t2, s.t3].forEach((t, i) => {
+            if (rem > FEE) {
+                // If it's the LAST term or there is no next term to spill into
+                if (i === 2) {
+                    t.p = rem;
+                    t.s = "OVER PAID";
+                    t.b = "+" + (rem - FEE);
+                } else {
+                    // It overflows, but we mark Term 1 as OVER PAID if it's currently holding > 150k
+                    // User requested OVER PAID in Term 1 logic
+                    t.p = FEE;
+                    t.s = "PAID";
+                    t.b = 0;
+                    
+                    // Special visual trigger: if total money is strictly between 150k and 300k, 
+                    // and we are looking at Term 1, it implies an overpayment relative to that term.
+                    if (i === 0 && s.paidTotal > FEE && s.paidTotal < (FEE*2)) {
+                        t.s = "OVER PAID";
+                        t.b = "+" + (s.paidTotal - FEE);
+                        t.p = s.paidTotal; 
+                        // Note: To keep the "Waterfall" flow, usually rem is reduced. 
+                        // But per your request, we prioritize showing the excess.
+                    }
+                    rem -= FEE;
+                }
+            } else if (rem === FEE) {
+                t.p = FEE; t.s = "PAID"; t.b = 0; rem = 0;
+            } else if (rem > 0 && rem < FEE) {
+                t.p = rem; t.s = "NOT ENOUGH MONEY"; t.b = FEE - rem; rem = 0;
+            } else {
+                t.p = 0; t.s = "NOT PAID"; t.b = FEE;
+            }
+        });
+    }
+
+    function save() { localStorage.setItem('fees_system_v3', JSON.stringify(students)); }
+
+    function render() {
+        const q = document.getElementById('search').value.toLowerCase();
+        const container = document.getElementById('list');
+        container.innerHTML = "";
+
+        ["Level 3", "Level 4", "Level 5"].forEach(lvl => {
+            let filtered = students.filter(s => s.level === lvl && s.name.toLowerCase().includes(q));
+            if(filtered.length > 0) {
+                let html = `<div class="level-group"><div class="level-header">${lvl}</div><div class="table-container"><table>
+                    <thead>
+                        <tr>
+                            <th rowspan="2">Student Name</th>
+                            <th colspan="4" class="term-sep">Term 1</th>
+                            <th colspan="4" class="term-sep">Term 2</th>
+                            <th colspan="4" class="term-sep">Term 3</th>
+                        </tr>
+                        <tr>
+                            <th class="term-sep">Fees</th><th>Paid</th><th>Bal</th><th>Status</th>
+                            <th class="term-sep">Fees</th><th>Paid</th><th>Bal</th><th>Status</th>
+                            <th class="term-sep">Fees</th><th>Paid</th><th>Bal</th><th>Status</th>
+                        </tr>
+                    </thead><tbody>`;
+                
+                filtered.forEach(s => {
+                    html += `<tr><td style="text-align:left; font-weight:bold;">${s.name}</td>
+                        <td class="term-sep">${FEE.toLocaleString()}</td><td>${s.t1.p.toLocaleString()}</td><td>${s.t1.b}</td><td><span class="st-${s.t1.s.replace(/ /g, '-')}">${s.t1.s}</span></td>
+                        <td class="term-sep">${FEE.toLocaleString()}</td><td>${s.t2.p.toLocaleString()}</td><td>${s.t2.b}</td><td><span class="st-${s.t2.s.replace(/ /g, '-')}">${s.t2.s}</span></td>
+                        <td class="term-sep">${FEE.toLocaleString()}</td><td>${s.t3.p.toLocaleString()}</td><td>${s.t3.b}</td><td><span class="st-${s.t3.s.replace(/ /g, '-')}">${s.t3.s}</span></td></tr>`;
+                });
+                container.innerHTML += html + "</tbody></table></div></div>";
+            }
+        });
+        fillSelect();
+    }
+
+    function show(id) {
+        document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.getElementById('n-' + id).classList.add('active');
+        if(id === 'dash') {
+            let col = 0, debt = 0;
+            students.forEach(s => { 
+                col += s.paidTotal; 
+                [s.t1,s.t2,s.t3].forEach(t => { if(typeof t.b === 'number') debt += t.b; });
+            });
+            document.getElementById('d-col').innerText = col.toLocaleString() + " RWF";
+            document.getElementById('d-debt').innerText = debt.toLocaleString() + " RWF";
+        }
+    }
+
+    function addStudent() {
+        let n = document.getElementById('regName').value;
+        let l = document.getElementById('regLvl').value;
+        let t = parseInt(document.getElementById('regTerm').value);
+        let m = parseInt(document.getElementById('regMoney').value) || 0;
+        if(!n) return;
+        let s = { name: n, level: l, paidTotal: 0, t1:{}, t2:{}, t3:{} };
+        let offset = (t - 1) * FEE;
+        calc(s, offset + m);
+        students.push(s);
+        save(); render(); show('home');
+    }
+
+    function pay() {
+        let name = document.getElementById('selStudent').value;
+        let val = parseInt(document.getElementById('amt').value);
+        if(!name || isNaN(val)) return;
+        let s = students.find(x => x.name === name);
+        calc(s, val);
+        save(); render(); show('home');
+        document.getElementById('amt').value = "";
+    }
+
+    function fillSelect() {
+        const sel = document.getElementById('selStudent');
+        sel.innerHTML = '<option value="">-- Choose Student --</option>';
+        students.sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
+            sel.innerHTML += `<option value="${s.name}">${s.name} (${s.level})</option>`;
+        });
+    }
+
+    render();
+</script>
+</body>
+</html>
